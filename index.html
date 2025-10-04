@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCAN ITT WDCP</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* Global Styling */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 10px 20px 20px 20px; 
+            background-color: #f0f2f5; 
+            text-align: center;
+            color: #333;
+        }
+        
+        h1 {
+            color: #1a4d95;
+            margin-bottom: 30px;
+        }
+
+        /* Control Panels */
+        #filterControls {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: inline-block; 
+            text-align: center;
+            max-width: 95%;
+            margin-top: 10px; 
+        }
+        
+        .filter-group {
+            margin: 5px 10px;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        /* Styling Input, Select, dan Textbox Pencarian */
+        .filter-group label {
+            display: block;
+            font-size: 0.85em;
+            margin-bottom: 3px;
+            color: #555;
+            text-align: left;
+        }
+        .filter-group input, .filter-group select {
+            width: 180px; 
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #cce5ff;
+            font-size: 0.9em;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.2s;
+        }
+        .filter-group input:focus, .filter-group select:focus {
+            border-color: #1a4d95;
+            outline: none;
+        }
+        
+        /* Grup Tombol Aksi */
+        .filter-button-group {
+            display: inline-block;
+            margin-left: 10px;
+            padding-top: 18px; 
+        }
+
+        .filter-button-group button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Tombol Proses (Hijau Terang) */
+        #processButton { background-color: #4CAF50; color: white; border: none; box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3); }
+        #processButton:hover:not(:disabled) { background-color: #388E3C; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4); }
+
+        /* Tombol Reset (Oranye/Kuning Terang) */
+        #resetButton { background-color: #FF9800; color: white; border: none; box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3); }
+        #resetButton:hover:not(:disabled) { background-color: #F57C00; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4); }
+        
+        /* --- MODAL STYLING (Pop-up Melayang) --- */
+        .modal-overlay {
+            display: none; 
+            position: fixed;
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6); 
+            backdrop-filter: blur(3px); 
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 0; 
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 90%; 
+            max-width: 420px; 
+            
+            max-height: 90vh; 
+            overflow-y: auto; 
+
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; 
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Tombol Close yang Diperbagus */
+        .close-btn {
+            position: absolute; 
+            top: 10px;
+            right: 10px;
+            background: #dc3545; 
+            color: white;
+            font-size: 1.5em; 
+            font-weight: 500;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10; 
+        }
+        .close-btn:hover {
+            background-color: #c82333;
+            transform: scale(1.1);
+        }
+
+        /* Kontainer Konten Kartu (untuk Animasi) */
+        #modalCardContent {
+            padding-top: 10px; 
+            transition: opacity 0.3s ease-in-out; 
+        }
+        
+        /* Animasi fade saat navigasi */
+        .fade-out {
+            opacity: 0;
+            pointer-events: none; 
+        }
+        .fade-in {
+            opacity: 1;
+        }
+
+        /* Styling Konten Kartu */
+        #modalCardContent h2 { 
+            margin-top: 0; 
+            color: #1a4d95; 
+            font-size: 1.6em; 
+            margin-bottom: 15px; 
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        .plumd-display {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+            margin-top: 5px; 
+        }
+        .barcode-area {
+            text-align: center;
+            margin: 10px 0 10px 0; 
+        }
+        .card-price { 
+            font-weight: bold; 
+            color: #dc3545; 
+            display: block; 
+            margin-top: 20px; 
+            font-size: 1.8em; 
+        }
+        /* Lokasi Sejajar */
+        .card-location-row {
+            display: flex;
+            justify-content: center;
+            margin: 8px 0; 
+            gap: 10px; 
+            font-size: 1em;
+            color: #333;
+        }
+        .card-location-item {
+            padding: 5px 8px; 
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        
+        /* BARCODE DIPERBESAR DI SINI */
+        .barcode-area svg {
+            width: 100%;
+            height: 90px; 
+            max-width: 380px;
+        }
+        
+        /* Kontrol Pagination di dalam Modal */
+        #modalPaginationControls {
+            flex-shrink: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px; 
+            padding-top: 10px; 
+            border-top: 1px dashed #ddd; 
+            margin-bottom: 0;
+        }
+        /* Style navigasi */
+        .modal-nav-btn {
+            padding: 10px 15px; 
+            background-color: #1a4d95; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 0 10px; width: 50px; transition: background-color 0.3s, transform 0.1s;
+        }
+        .modal-nav-btn:hover:not(:disabled) { background-color: #143b74; transform: scale(1.05); }
+        .modal-nav-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        #modalPageInfo { font-weight: 600; color: #1a4d95; font-size: 1.1em; min-width: 100px; text-align: center; }
+
+        /* Pesan Info/Error/Loading */
+        .error-message, .info-message, .loading-message {
+            padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 1.1em; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; width: 90%; max-width: 450px; margin: 25px auto;
+        }
+        .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .info-message { color: #004085; background-color: #cce5ff; border: 1px solid #b8daff; }
+        .loading-message { color: #FF9800; background-color: #fff3e0; border: 1px solid #ffcc80; }
+        
+        /* --- FOOTER STYLING BARU --- */
+        footer {
+            margin-top: 20px; /* Nilai margin-top DIBERKURANGI dari 50px menjadi 20px */
+            padding: 15px 0;
+            font-size: 0.85em;
+            color: #999;
+            text-align: center;
+            border-top: 1px solid #ddd;
+        }
+        footer span {
+            display: block;
+            margin-top: 5px;
+            font-family: monospace; 
+        }
+
+    </style>
+</head>
+<body onload="fetchDataFromGitHub()">
+
+    <h1>SCAN ITT WDCP</h1>
+    
+    <div id="filterControls">
+        <div class="filter-group">
+            <label for="namaRakFilter">Pilih MODIS:</label>
+            <select id="namaRakFilter" disabled></select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="shelfFromFilter">Dari SHELF:</label>
+            <select id="shelfFromFilter" disabled></select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="shelfToFilter">Sampai SHELF:</label>
+            <select id="shelfToFilter" disabled></select>
+        </div>
+
+        <div class="filter-group">
+            <label for="searchFilter">Cari Produk:</label>
+            <input type="text" id="searchFilter" placeholder="Cari PLU atau NAMA..." disabled>
+        </div>
+        
+        <div class="filter-button-group">
+            <button onclick="applyFilters()" id="processButton" disabled>
+                <i class="fas fa-search"></i> Proses & Tampilkan
+            </button>
+            <button onclick="resetFiltersAndSearch()" id="resetButton" disabled>
+                <i class="fas fa-redo-alt"></i> Reset Filter
+            </button>
+        </div>
+    </div>
+    
+    
+
+    <div id="cardContainer">
+        <p class="loading-message">
+            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+        </p>
+    </div>
+    
+    <div id="productModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="hideModal()"><i class="fas fa-times"></i></span>
+            
+            <div id="modalCardContent" class="fade-in">
+                </div>
+            
+            <div id="modalPaginationControls">
+                <button class="modal-nav-btn" id="prevBtn" onclick="navigateCard(-1)">&laquo;</button>
+                <div id="modalPageInfo"></div>
+                <button class="modal-nav-btn" id="nextBtn" onclick="navigateCard(1)">&raquo;</button>
+            </div>
+            
+        </div>
+    </div>
+
+    <footer>
+        ~ &copy; made with ☠️ by M.H.R ~
+        <span id="timestamp"></span>
+    </footer>
+    <script>
+        let rawData = []; 
+        let filteredData = []; 
+        let currentIndex = -1; 
+        const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/Mharyrafli/DATA/refs/heads/main/04102025.json';
+
+        const productModal = document.getElementById('productModal'); 
+        const modalCardContent = document.getElementById('modalCardContent'); 
+        const cardContainer = document.getElementById('cardContainer'); 
+        
+        const modalPaginationControls = document.getElementById('modalPaginationControls');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const modalPageInfo = document.getElementById('modalPageInfo');
+        
+        const processButton = document.getElementById('processButton');
+        const resetButton = document.getElementById('resetButton'); 
+        
+        const namaRakFilter = document.getElementById('namaRakFilter');
+        const shelfFromFilter = document.getElementById('shelfFromFilter');
+        const shelfToFilter = document.getElementById('shelfToFilter');
+        const searchFilter = document.getElementById('searchFilter');
+        
+        // Sembunyikan pagination saat inisialisasi
+        modalPaginationControls.style.display = 'none';
+        
+        // --- FUNGSI BARU: UPDATE TIMESTAMP ---
+        function updateTimestamp() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false, 
+                timeZoneName: 'short'
+            };
+            document.getElementById('timestamp').textContent = now.toLocaleDateString('id-ID', options);
+        }
+        
+        // Panggil fungsi timestamp saat halaman dimuat
+        updateTimestamp();
+        
+        // --- INI MODIFIKASI UTAMA: UPDATE REALTIME SETIAP DETIK (1000ms) ---
+        setInterval(updateTimestamp, 1000); 
+
+
+        // --- FUNGSI MODAL ---
+        function showModal() {
+            // Mengubah display dari 'none' menjadi 'flex' (agar centering aktif)
+            productModal.style.display = 'flex'; 
+        }
+        function hideModal() {
+            productModal.style.display = 'none';
+        }
+
+        // Tutup modal jika user mengklik area di luar modal
+        window.onclick = function(event) {
+            if (event.target == productModal) {
+                hideModal();
+            }
+        }
+        
+        // Fungsi untuk mengaktifkan/menonaktifkan semua kontrol filter
+        function toggleFilterControls(enable) {
+            namaRakFilter.disabled = !enable;
+            shelfFromFilter.disabled = !enable;
+            shelfToFilter.disabled = !enable;
+            searchFilter.disabled = !enable;
+            processButton.disabled = !enable;
+            resetButton.disabled = !enable;
+        }
+
+        // --- FUNGSI UTAMA: MUAT DATA DARI GITHUB ---
+        async function fetchDataFromGitHub() {
+            cardContainer.innerHTML = `<p class="loading-message"><i class="fas fa-spinner fa-spin"></i> Memuat data..</p>`;
+            toggleFilterControls(false);
+
+            try {
+                const response = await fetch(GITHUB_RAW_URL);
+                if (!response.ok) {
+                    throw new Error(`Gagal memuat: ${response.status} ${response.statusText}. Pastikan URL GitHub benar.`);
+                }
+                const data = await response.json();
+                
+                if (!Array.isArray(data)) {
+                    cardContainer.innerHTML = `<p class="error-message">Data JSON yang dimuat bukan berupa Array (daftar item).</p>`;
+                    return;
+                }
+
+                rawData = data; 
+                filteredData = []; 
+                currentIndex = -1; 
+                
+                populateFilterOptions(rawData);
+                toggleFilterControls(true); 
+                
+                // Reset tampilan pagination di modal
+                modalPaginationControls.style.display = 'none';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                modalPageInfo.textContent = '0 dari 0';
+                cardContainer.innerHTML = `<p class="info-message">Data berhasil dimuat (${data.length} item)..</p>`;
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                cardContainer.innerHTML = `<p class="error-message">Error: Gagal memuat data dari GitHub. (${error.message})</p>`;
+            } 
+        }
+
+        // --- UTILITY FUNCTIONS ---
+
+        function formatRupiah(angka) {
+            const number = parseFloat(String(angka).replace(/\.0{6}$/, ''));
+            if (isNaN(number)) { return String(angka); }
+            return "Rp " + number.toLocaleString('id-ID');
+        }
+
+        function sortData(data) {
+            return data.sort((a, b) => {
+                const rakA = a.NAMA_RAK || '';
+                const rakB = b.NAMA_RAK || '';
+                const rakComparison = rakA.localeCompare(rakB);
+                if (rakComparison !== 0) {
+                    return rakComparison;
+                }
+                
+                const shelfA = parseInt(a.NOSHELF) || 0;
+                const shelfB = parseInt(b.NOSHELF) || 0;
+                const shelfComparison = shelfA - shelfB;
+                if (shelfComparison !== 0) {
+                    return shelfComparison;
+                }
+
+                const kirikananA = parseInt(a.KIRIKANAN) || 0;
+                const kirikananB = parseInt(b.KIRIKANAN) || 0;
+                
+                return kirikananA - kirikananB; 
+            });
+        }
+
+        function populateFilterOptions(data) {
+            const uniqueRaks = [...new Set(data.map(item => item.NAMA_RAK).filter(Boolean))].sort();
+            const uniqueShelves = [...new Set(data.map(item => item.NOSHELF).filter(Boolean))]
+                                    .map(s => parseInt(s))
+                                    .filter(s => !isNaN(s))
+                                    .sort((a, b) => a - b);
+            
+            namaRakFilter.innerHTML = '<option value="">-- Semua Rak --</option>';
+            uniqueRaks.forEach(rak => {
+                namaRakFilter.innerHTML += `<option value="${rak}">${rak}</option>`;
+            });
+
+            shelfFromFilter.innerHTML = '<option value="">-- Dari --</option>';
+            shelfToFilter.innerHTML = '<option value="">-- Sampai --</option>';
+            uniqueShelves.forEach(shelf => {
+                shelfFromFilter.innerHTML += `<option value="${shelf}">${shelf}</option>`;
+                shelfToFilter.innerHTML += `<option value="${shelf}">${shelf}</option>`;
+            });
+        }
+
+        // --- RESET FILTER ---
+        function resetFiltersAndSearch() {
+            hideModal();
+            modalPaginationControls.style.display = 'none';
+            namaRakFilter.value = "";
+            shelfFromFilter.value = "";
+            shelfToFilter.value = "";
+            searchFilter.value = "";
+            
+            filteredData = [];
+            currentIndex = -1;
+            cardContainer.innerHTML = `<p class="info-message">Filter telah direset..</p>`;
+            
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+            modalPageInfo.textContent = '0 dari 0';
+        }
+
+
+        // --- FILTER APPLICATION (Tombol Proses) ---
+
+        function applyFilters() {
+            if (rawData.length === 0) {
+                cardContainer.innerHTML = `<p class="error-message">Data belum dimuat atau kosong. Mohon periksa koneksi atau sumber data.</p>`;
+                return;
+            }
+
+            const selectedRak = namaRakFilter.value;
+            const shelfFrom = shelfFromFilter.value ? parseInt(shelfFromFilter.value) : null;
+            const shelfTo = shelfToFilter.value ? parseInt(shelfToFilter.value) : null;
+            
+            const searchTerms = searchFilter.value
+                                        .toLowerCase()
+                                        .split(/[\s\n]+/) 
+                                        .filter(term => term.trim() !== ''); 
+
+            let results = rawData.filter(item => {
+                if (selectedRak && item.NAMA_RAK !== selectedRak) return false;
+
+                const currentShelf = item.NOSHELF ? parseInt(item.NOSHELF) : null;
+                if (shelfFrom !== null && (currentShelf === null || currentShelf < shelfFrom)) return false;
+                if (shelfTo !== null && (currentShelf === null || currentShelf > shelfTo)) return false;
+                
+                if (searchTerms.length > 0) {
+                    const pluMd = (item.PLUMD || '').toLowerCase();
+                    const singkatan = (item.SINGKATAN || '').toLowerCase();
+                    
+                    // Logika OR: cocok dengan SALAH SATU istilah pencarian
+                    const matchesAnyTerm = searchTerms.some(term => 
+                        pluMd.includes(term) || singkatan.includes(term)
+                    );
+                    
+                    if (!matchesAnyTerm) return false;
+                }
+
+                return true;
+            });
+
+            filteredData = sortData(results);
+            currentIndex = 0;
+            if (filteredData.length > 0) {
+                // Tampilkan pagination dan kartu pertama di modal
+                modalPaginationControls.style.display = 'flex';
+                displayCurrentCard(); 
+                cardContainer.innerHTML = `<p class="info-message">Ditemukan ${filteredData.length} item..</p>`;
+
+            } else {
+                hideModal();
+                modalPaginationControls.style.display = 'none';
+                cardContainer.innerHTML = `<p class="error-message">Tidak ada data yang cocok dengan kriteria filter yang dipilih.</p>`;
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                modalPageInfo.textContent = '0 dari 0';
+            }
+        }
+
+
+        // --- CARD NAVIGATION & DISPLAY (Menampilkan ke Modal dengan Animasi) ---
+
+        function navigateCard(direction) {
+            const newIndex = currentIndex + direction;
+
+            if (newIndex >= 0 && newIndex < filteredData.length) {
+                // Tambahkan kelas fade-out sebelum navigasi
+                modalCardContent.classList.remove('fade-in');
+                modalCardContent.classList.add('fade-out');
+                
+                // Tunggu sebentar (sesuai durasi transisi CSS)
+                setTimeout(() => {
+                    currentIndex = newIndex;
+                    updateCardContent(); // Update konten tanpa menampilkan ulang modal
+                    // Hapus fade-out dan tambahkan fade-in
+                    modalCardContent.classList.remove('fade-out');
+                    modalCardContent.classList.add('fade-in'); 
+                }, 300); // Sesuaikan dengan durasi transisi CSS (0.3s)
+            }
+        }
+        
+        // Fungsi untuk pertama kali menampilkan kartu / saat filter dijalankan
+        function displayCurrentCard() {
+            updateCardContent();
+            modalCardContent.classList.remove('fade-out');
+            modalCardContent.classList.add('fade-in');
+            showModal(); 
+        }
+
+        function updateCardContent() {
+            
+            if (currentIndex < 0 || currentIndex >= filteredData.length) {
+                modalCardContent.innerHTML = '';
+                hideModal();
+                modalPaginationControls.style.display = 'none';
+                return; 
+            }
+
+            const item = filteredData[currentIndex];
+
+            const namaProduk = item.SINGKATAN || 'Nama Tidak Tersedia';
+            const harga = formatRupiah(item.PRICE || '0');
+            const pluMd = item.PLUMD || 'N/A';
+            const barcode = item.BARCD || 'N/A';
+            const namaRak = item.NAMA_RAK || 'N/A';
+            const noShelf = item.NOSHELF || 'N/A';
+            const kiriKanan = item.KIRIKANAN || 'N/A';
+            
+            // Pembuatan Struktur HTML Kartu di dalam Modal
+            modalCardContent.innerHTML = `
+                <h2>${namaProduk}</h2>
+                
+                <p class="plumd-display">${pluMd}</p>
+                
+                <div class="barcode-area">
+                    <svg id="barcodeSvg_modal"></svg> 
+                </div>
+
+                <hr style="border-top: 1px dashed #eee; margin: 10px auto; width: 80%;">
+                
+                <p class="card-detail"><strong>${namaRak}</strong></p>
+
+                <div class="card-location-row">
+                    <div class="card-location-item">Shelf: <strong>${noShelf}</strong></div>
+                    <div class="card-location-item">Baris: <strong>${kiriKanan}</strong></div>
+                </div>
+                
+                <span class="card-price">${harga}</span>
+            `;
+            
+            // --- MEMBUAT BARCODE DENGAN JSBARCODE ---
+            const barcodeSvgElement = document.getElementById('barcodeSvg_modal');
+            
+            if (barcodeSvgElement && barcode !== 'N/A' && barcode.trim() !== '') {
+                try {
+                    JsBarcode(barcodeSvgElement, barcode, {
+                        format: "CODE128", 
+                        displayValue: true, 
+                        text: barcode, 
+                        height: 120, 
+                        width: 4,   
+                        margin: 5
+                    });
+                } catch (e) {
+                    barcodeSvgElement.outerHTML = `<p class="error-message" style="font-size: 0.8em; margin-top: 5px;">Barcode Error: Tidak dapat dibuat.</p>`;
+                }
+            } else if (barcodeSvgElement) {
+                barcodeSvgElement.style.display = 'none';
+            }
+            
+
+            // Update status tombol navigasi dan teks halaman
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === filteredData.length - 1;
+            modalPageInfo.textContent = `${currentIndex + 1} dari ${filteredData.length}`;
+        }
+    </script>
+</body>
+</html>
